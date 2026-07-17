@@ -20,11 +20,13 @@ async function driveDemos(page: Page): Promise<void> {
   await page.locator("#spa-run").click();
   await expect(page.locator("#spa-status")).not.toBeEmpty();
 
-  // Exhibit 2 — CPA (also exercise the sliders)
+  // Exhibit 2 — CPA (also exercise the sliders, freeze, and the export status)
   await page.locator("#cpa-traces").fill("2500");
   await page.locator("#cpa-noise").fill("30");
   await page.locator("#cpa-run").click();
   await expect(page.locator("#cpa-verdict")).not.toBeEmpty();
+  await page.locator("#cpa-freeze").click();
+  await expect(page.locator("#cpa-repro-status")).not.toBeEmpty();
 
   // Exhibit 3 — noise sweep
   await page.locator("#noise-run").click();
@@ -43,6 +45,14 @@ async function driveDemos(page: Page): Promise<void> {
   await page.locator("#cm-masking").check();
   await page.locator("#cm-run").click();
   await expect(page.locator("#cm-verdict")).not.toBeEmpty();
+
+  // Exhibit 7 — import: round-trip the example CSV so the result region gets scanned
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("#import-example").click(),
+  ]);
+  await page.locator("#import-file").setInputFiles(await download.path());
+  await expect(page.locator("#import-recovered")).not.toBeEmpty();
 
   // Reveal every collapsed table.
   await page.evaluate(() => {

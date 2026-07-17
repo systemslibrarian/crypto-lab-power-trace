@@ -25,6 +25,8 @@ jobs:
         run: npm test
       - name: Build (typecheck gates the build)
         run: npm run build
+      - name: Bundle-size budget
+        run: npm run size
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: E2E + accessibility gate (axe-core, WCAG A/AA, both themes)

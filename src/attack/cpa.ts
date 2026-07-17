@@ -111,6 +111,20 @@ export function cpaAttack(ts: TraceSet, numTraces?: number): CpaResult {
   return acc.result();
 }
 
+/**
+ * Run CPA on raw arrays — used to attack imported (e.g. real-capture) traces,
+ * where there is no TraceSet and no known key. Same real correlation as cpaAttack.
+ */
+export function cpaFromArrays(
+  plaintextByte: ArrayLike<number>,
+  traces: ArrayLike<number>[],
+  numSamples: number,
+): CpaResult {
+  const acc = new CpaAccumulator(numSamples);
+  for (let i = 0; i < traces.length; i++) acc.add(plaintextByte[i], traces[i]);
+  return acc.result();
+}
+
 export interface SeparationPoint {
   numTraces: number;
   correctScore: number; // peak correlation of the true key byte

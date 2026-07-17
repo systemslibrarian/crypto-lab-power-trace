@@ -13,12 +13,28 @@ export function drawGuessPlot(
   w: number,
   h: number,
   c: ChartColors,
-  data: { scores: Float64Array; trueByte: number; recovered: boolean },
+  data: { scores: Float64Array; trueByte: number; recovered: boolean; frozen?: Float64Array },
 ): void {
   let maxScore = 0;
   for (const s of data.scores) if (s > maxScore) maxScore = s;
+  if (data.frozen) for (const s of data.frozen) if (s > maxScore) maxScore = s;
   const yMax = Math.max(0.4, maxScore * 1.2);
   const p = frame(ctx, w, h, c, [0, 255], [0, yMax]);
+
+  // Frozen baseline overlay (a previous parameter setting), drawn faint behind.
+  if (data.frozen) {
+    ctx.strokeStyle = c.accentText;
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let g = 0; g < data.frozen.length; g++) {
+      const X = p.px(g);
+      ctx.moveTo(X, p.py(0));
+      ctx.lineTo(X, p.py(data.frozen[g]));
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 
   for (let g = 0; g < 256; g++) {
     if (g === data.trueByte) continue;

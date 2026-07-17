@@ -69,6 +69,39 @@ test.describe("Countermeasures", () => {
   });
 });
 
+test.describe("Reproducibility", () => {
+  test("a permalink restores the exact figure state", async ({ page }) => {
+    await page.goto(".");
+    await page.evaluate(() => {
+      location.hash = "#traces=1230&noise=5&seed=7";
+    });
+    await page.reload();
+    await expect(page.locator("#cpa-traces")).toHaveValue("1230");
+    await expect(page.locator("#cpa-seed")).toHaveValue("7");
+    await expect(page.locator("#cpa-noise")).toHaveValue("50"); // sigma 5 -> slider 50
+    await expect(page.locator("#cpa-verdict")).not.toBeEmpty();
+  });
+
+  test("freeze captures a baseline for comparison", async ({ page }) => {
+    await page.goto(".");
+    await page.locator("#cpa-run").click();
+    await page.locator("#cpa-freeze").click();
+    await expect(page.locator("#cpa-repro-status")).toContainText("Froze");
+  });
+
+  test("example CSV round-trips through the real import pipeline and recovers 0x2B", async ({ page }) => {
+    await page.goto(".");
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#import-example").click(),
+    ]);
+    const path = await download.path();
+    await page.locator("#import-file").setInputFiles(path);
+    await expect(page.locator("#import-status")).toContainText("imported traces");
+    await expect(page.locator("#import-recovered")).toContainText("0x2B");
+  });
+});
+
 test.describe("Chrome", () => {
   test("theme choice persists across reload", async ({ page }) => {
     await page.goto(".");

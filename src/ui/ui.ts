@@ -4,10 +4,19 @@ import { bindChart, initCanvasTheming } from "./canvas";
 import { drawGuessPlot, drawSeparation, drawNoiseCurve, drawSpaTrace } from "./charts";
 import { hexToBytes } from "../aes/aes";
 import { generateTraces, type TraceSet } from "../leakage/traces";
-import { cpaAttack, cpaSeparation } from "../attack/cpa";
+import { cpaAttack, cpaSeparation, cpaFromArrays, type CpaResult } from "../attack/cpa";
 import { dpaAttack, minTracesToRecover } from "../attack/dpa";
 import { alignTraces, withTraces } from "../attack/align";
 import { spaExponentiate, readExponentFromOps } from "../spa/modexp";
+import {
+  parseHashState,
+  encodeHashState,
+  serializeGuessCsv,
+  parseTracesCsv,
+  exampleCsv,
+  download,
+  copyText,
+} from "./io";
 
 /** The fixed demo target: byte 0 of this AES-128 key (0x2B). */
 const DEMO_KEY = hexToBytes("2b7e151628aed2a6abf7158809cf4f3c");
@@ -216,6 +225,16 @@ function cpaSection(): HTMLElement {
   const recovered = el("div", { class: "recovered", id: "cpa-recovered" });
   const table = el("div", { id: "cpa-table" });
 
+  // Reproducibility: permalink + freeze-and-compare + export.
+  const freezeBtn = el("button", { id: "cpa-freeze", type: "button", class: "secondary" }, ["Freeze current"]);
+  const clearBtn = el("button", { id: "cpa-clear-frozen", type: "button", class: "secondary" }, ["Clear frozen"]);
+  const linkBtn = el("button", { id: "cpa-link", type: "button", class: "secondary" }, ["Copy figure link"]);
+  const jsonBtn = el("button", { id: "cpa-json", type: "button", class: "secondary" }, ["Download JSON"]);
+  const csvBtn = el("button", { id: "cpa-csv", type: "button", class: "secondary" }, ["Download CSV"]);
+  const repoStatus = statusRegion("cpa-repro-status");
+  let frozen: Float64Array | undefined;
+  let lastRes: CpaResult | null = null;
+
   let cache: { noise: number; seed: number; ts: TraceSet } | null = null;
   function tracesFor(noise: number, seed: number): TraceSet {
     if (!cache || cache.noise !== noise || cache.seed !== seed) {
@@ -235,12 +254,17 @@ function cpaSection(): HTMLElement {
     traceVal.textContent = String(n);
     noiseVal.textContent = fmt(noise, 1);
 
-    const ts = tracesFor(noise, currentSeed());
+    const seed = currentSeed();
+    const ts = tracesFor(noise, seed);
     const res = cpaAttack(ts, n);
+    lastRes = res;
     const rank = res.ranking.indexOf(KEY_BYTE) + 1;
     const isRecovered = res.best === KEY_BYTE;
 
-    drawGuess((ctx, w, h, c) => drawGuessPlot(ctx, w, h, c, { scores: res.scores, trueByte: KEY_BYTE, recovered: isRecovered }));
+    // Keep the URL a live permalink to the current figure (no navigation).
+    history.replaceState(null, "", encodeHashState({ traces: n, noise, seed }));
+
+    drawGuess((ctx, w, h, c) => drawGuessPlot(ctx, w, h, c, { scores: res.scores, trueByte: KEY_BYTE, recovered: isRecovered, frozen }));
     setAria(
       canvas,
       `Peak correlation for all 256 key-byte guesses at ${n} traces. The true byte ${hex(KEY_BYTE)} ` +
@@ -326,6 +350,51 @@ function cpaSection(): HTMLElement {
   });
   seedInput.addEventListener("change", render);
   runBtn.addEventListener("click", render);
+
+  freezeBtn.addEventListener("click", () => {
+    if (!lastRes) return;
+    frozen = lastRes.scores.slice();
+    repoStatus.textContent = `Froze the current curve at ${traceSlider.value} traces / σ=${fmt(Number(noiseSlider.value) / 10, 1)}. Move the sliders to compare against it (faint gold overlay).`;
+    render();
+  });
+  clearBtn.addEventListener("click", () => {
+    frozen = undefined;
+    repoStatus.textContent = "Cleared the frozen baseline.";
+    render();
+  });
+  linkBtn.addEventListener("click", async () => {
+    const url = location.href;
+    const ok = await copyText(url);
+    repoStatus.textContent = ok ? "Copied a permalink to this exact figure to your clipboard." : `Permalink: ${url}`;
+  });
+  jsonBtn.addEventListener("click", () => {
+    if (!lastRes) return;
+    const payload = {
+      lab: "crypto-lab-power-trace",
+      attack: "CPA (Brier-Clavier-Olivier 2004)",
+      settings: { traces: Number(traceSlider.value), noise: Number(noiseSlider.value) / 10, seed: currentSeed() },
+      target: { key_byte_index: 0, true_byte_hex: hex(KEY_BYTE) },
+      result: {
+        recovered_byte_hex: hex(lastRes.best),
+        recovered: lastRes.best === KEY_BYTE,
+        true_byte_rank: lastRes.ranking.indexOf(KEY_BYTE) + 1,
+        peak_correlation: Number(lastRes.scores[lastRes.best].toFixed(6)),
+      },
+    };
+    download("power-trace-cpa-result.json", JSON.stringify(payload, null, 2), "application/json");
+    repoStatus.textContent = "Downloaded the result as JSON (settings + recovered byte + rank).";
+  });
+  csvBtn.addEventListener("click", () => {
+    if (!lastRes) return;
+    download("power-trace-cpa-correlations.csv", serializeGuessCsv(lastRes.scores), "text/csv");
+    repoStatus.textContent = "Downloaded the per-guess correlations as CSV (256 rows).";
+  });
+
+  // Restore figure state from a shared permalink, if present.
+  const restored = parseHashState(location.hash);
+  if (restored.traces !== undefined) traceSlider.value = String(Math.max(10, Math.min(MAX_TRACES, restored.traces)));
+  if (restored.noise !== undefined) noiseSlider.value = String(Math.max(5, Math.min(120, Math.round(restored.noise * 10))));
+  if (restored.seed !== undefined) seedInput.value = String(restored.seed);
   queueMicrotask(render);
 
   return el("section", { class: "panel headline" }, [
@@ -367,6 +436,12 @@ function cpaSection(): HTMLElement {
       sepCanvas,
     ]),
     table,
+    el("p", { class: "subhead" }, ["Reproduce & compare"]),
+    el("p", { class: "note" }, [
+      "Freeze the current curve to leave a faint baseline, then move a slider and compare. Copy a permalink that reopens this exact figure, or export the numbers.",
+    ]),
+    el("div", { class: "btn-row" }, [freezeBtn, clearBtn, linkBtn, jsonBtn, csvBtn]),
+    repoStatus,
     el("p", { class: "note caveat" }, [
       "This is verdict separation in one screen: the ",
       el("strong", {}, ["cryptographic result"]),
@@ -664,6 +739,81 @@ function countermeasuresSection(): HTMLElement {
 }
 
 /* ===================================================================== */
+/* Bring your own traces — the bench bridge                              */
+/* ===================================================================== */
+
+function importSection(): HTMLElement {
+  const fileInput = el("input", {
+    type: "file",
+    id: "import-file",
+    accept: ".csv,text/csv",
+    "aria-label": "CSV file of power traces to attack",
+  }) as HTMLInputElement;
+  const exampleBtn = el("button", { id: "import-example", type: "button", class: "secondary" }, ["Download example CSV"]);
+  const canvas = el("canvas", { id: "import-canvas", role: "img", "aria-label": "CPA on imported traces (load a CSV to run)" }) as HTMLCanvasElement;
+  const recovered = el("div", { class: "recovered", id: "import-recovered" });
+  const status = statusRegion("import-status");
+  const redraw = bindChart(canvas, 220);
+
+  async function handleFile(file: File): Promise<void> {
+    try {
+      const { plaintextByte, traces, numSamples } = parseTracesCsv(await file.text());
+      const res = cpaFromArrays(plaintextByte, traces, numSamples);
+      // We cannot verify the key for imported data, so the winner is the top
+      // CANDIDATE (amber), never asserted as "recovered".
+      redraw((ctx, w, h, c) => drawGuessPlot(ctx, w, h, c, { scores: res.scores, trueByte: res.best, recovered: false }));
+      setAria(canvas, `CPA on ${traces.length} imported traces of ${numSamples} samples: top candidate byte ${hex(res.best)}.`);
+      recovered.replaceChildren(
+        el("span", { class: "muted" }, ["Top candidate byte:"]),
+        el("span", { class: "byte-box pending" }, [hex(res.best)]),
+        el("span", { class: "stat-line muted" }, [`peak r = ${fmt(res.scores[res.best], 3)} · ${traces.length} traces · ${numSamples} samples`]),
+      );
+      status.textContent =
+        `Ran the identical real Pearson-correlation CPA on ${traces.length} imported traces (${numSamples} samples each). ` +
+        `Top candidate for the target key byte: ${hex(res.best)}. Only the traces changed — the attack code is the same one used above.`;
+    } catch (e) {
+      status.textContent = `Could not read that file: ${(e as Error).message} Expected: one trace per row — plaintext byte, then the power samples.`;
+    }
+  }
+
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files?.[0];
+    if (f) void handleFile(f);
+  });
+  exampleBtn.addEventListener("click", () => {
+    const ts = generateTraces({ numTraces: 400, key: DEMO_KEY, noise: 3, seed: 2025 });
+    download("power-trace-example.csv", exampleCsv(ts.plaintextByte, ts.traces), "text/csv");
+    status.textContent =
+      "Downloaded a 400-trace example CSV (simulated, from this lab's generator). Re-import it to watch the same CPA surface 0x2B — then try your own capture.";
+  });
+
+  return el("section", { class: "panel" }, [
+    el("span", { class: "step" }, ["Exhibit 7 — bring your own traces"]),
+    el("h2", {}, ["Run the real attack on your own data"]),
+    el("p", { class: "note" }, [
+      "No real hardware capture ships with this lab — but the attack is real, so it will run on any traces in a documented format. Export a capture from a tool like ",
+      el("a", { href: "https://www.newae.com/chipwhisperer" }, ["ChipWhisperer"]),
+      " to CSV and drop it in: ",
+      el("strong", {}, ["one trace per row — the plaintext byte first, then the power samples"]),
+      " (an optional header row is fine). The same Pearson-correlation CPA runs on it unchanged.",
+    ]),
+    el("div", { class: "controls" }, [
+      el("div", { class: "control-row" }, [
+        el("label", { for: "import-file" }, ["Trace CSV to attack"]),
+        fileInput,
+      ]),
+    ]),
+    el("div", { class: "btn-row" }, [exampleBtn]),
+    el("figure", {}, [el("figcaption", {}, ["CPA on the imported traces — top candidate highlighted"]), canvas]),
+    recovered,
+    status,
+    el("p", { class: "note caveat" }, [
+      "What transfers from this simulated bench to a real one: the leakage model, the statistics, and the trace-count economics. What doesn't: the exact noise physics of a given chip. Imported real traces will usually have many more samples and need alignment and point-of-interest selection first — this importer runs the raw correlation, not a full capture pipeline.",
+    ]),
+  ]);
+}
+
+/* ===================================================================== */
 /* Honest scoping + non-goals                                            */
 /* ===================================================================== */
 
@@ -727,6 +877,7 @@ export function initUi(): void {
     misalignSection(),
     dpaCpaSection(),
     countermeasuresSection(),
+    importSection(),
     scopingSection(),
   ]);
   app.append(main);

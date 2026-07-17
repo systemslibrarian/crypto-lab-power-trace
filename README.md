@@ -38,10 +38,12 @@ is to show *why the class of attack works*, not to break any specific hardware.
    square-then-multiply is a 1, a lone square is a 0. No statistics. The hook.
 2. **Correlation Power Analysis (the headline)** — for each of the 256 guesses of key
    byte 0, predict `HW(SBox(p ⊕ k))` and correlate against the measured power. Drag the
-   trace-count and noise sliders and watch the one correct byte spike out of the pack. The
-   **cryptographic result** ("AES ran correctly") and the **security verdict** ("its key
-   leaked") are shown as separate indicators — a correct cipher whose key leaked reads as
-   ALARM, not green.
+   trace-count, noise, and **seed** sliders and watch the one correct byte spike out of the
+   pack. The **cryptographic result** ("AES ran correctly") and the **security verdict**
+   ("its key leaked") are shown as separate indicators — a correct cipher whose key leaked
+   reads as ALARM, not green. **Freeze** a curve to compare parameter settings, **copy a
+   permalink** that reopens the exact figure, or **export** the result as JSON / the 256
+   correlations as CSV.
 3. **The economics of noise** — raise the noise floor and watch the required trace count
    climb (roughly ∝ σ²). Attacks don't fail from noise; they just cost more traces.
 4. **Trace misalignment** — jitter the traces and CPA collapses; cross-correlate to a
@@ -54,7 +56,10 @@ is to show *why the class of attack works*, not to break any specific hardware.
    attacked with the identical CPA. Masking removes the first-order leak; shuffling and
    hiding only raise the price. The second-order attack that defeats masking is **named,
    not built.**
-7. **Honesty panel** — what is real, what is simulated, and what this does not prove.
+7. **Bring your own traces** — the same real CPA runs on any traces in a documented CSV
+   format (plaintext byte + power samples per row). Download the example CSV or drop in your
+   own capture (e.g. exported from ChipWhisperer). What transfers is stated plainly.
+8. **Honesty panel** — what is real, what is simulated, and what this does not prove.
 
 ## When to Use It
 
@@ -126,20 +131,21 @@ Local a11y preview runs on port **4288** (`npm run preview -- --port 4288 --stri
 
 ## Build & Verify
 
-- **37 unit tests** (Vitest), colocated as `src/**/*.test.ts`, all passing.
+- **45 unit tests** (Vitest), colocated as `src/**/*.test.ts`, all passing.
 - **Spec KATs:** 3 FIPS-197 AES-128 known-answer encryption vectors (`src/aes/aes.test.ts`),
   plus FIPS-197 S-box and key-expansion checks. The attack tests prove CPA recovers the key
   byte, DPA needs more traces than CPA, jitter collapses CPA and resync restores it, masking
   decorrelates the first-order leak, and SPA reads the exponent off the operation trace.
 - **Behavior E2E** (`e2e/behavior.spec.ts`): Playwright drives the shipped UI to verify the
   teaching outcomes — CPA recovers `0x2B`, the verdict flips as trace count climbs, jitter
-  blocks the attack and resync restores it, masking defeats first-order CPA, and the theme
-  choice persists across reload.
+  blocks the attack and resync restores it, masking defeats first-order CPA, a permalink
+  restores the exact figure, the example CSV round-trips through the real import pipeline and
+  recovers `0x2B`, and the theme choice persists across reload.
 - **Accessibility gate:** `@axe-core/playwright` scans the production build for zero WCAG
   2.1 A/AA violations in **both** themes, and blocks the GitHub Pages deploy on any failure.
-- **CI on every PR** (`.github/workflows/ci.yml`) runs unit tests, the typechecked build, and
-  the a11y + behavior gate before merge; `deploy.yml` runs the same on `main` and only then
-  publishes.
+- **CI on every PR** (`.github/workflows/ci.yml`) runs unit tests, the typechecked build, a
+  **bundle-size budget** (`npm run size`), and the a11y + behavior gate before merge;
+  `deploy.yml` runs the same on `main` and only then publishes.
 
 ## Performance
 
