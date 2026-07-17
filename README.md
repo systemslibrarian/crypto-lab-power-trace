@@ -131,14 +131,37 @@ Local a11y preview runs on port **4288** (`npm run preview -- --port 4288 --stri
   plus FIPS-197 S-box and key-expansion checks. The attack tests prove CPA recovers the key
   byte, DPA needs more traces than CPA, jitter collapses CPA and resync restores it, masking
   decorrelates the first-order leak, and SPA reads the exponent off the operation trace.
+- **Behavior E2E** (`e2e/behavior.spec.ts`): Playwright drives the shipped UI to verify the
+  teaching outcomes — CPA recovers `0x2B`, the verdict flips as trace count climbs, jitter
+  blocks the attack and resync restores it, masking defeats first-order CPA, and the theme
+  choice persists across reload.
 - **Accessibility gate:** `@axe-core/playwright` scans the production build for zero WCAG
   2.1 A/AA violations in **both** themes, and blocks the GitHub Pages deploy on any failure.
+- **CI on every PR** (`.github/workflows/ci.yml`) runs unit tests, the typechecked build, and
+  the a11y + behavior gate before merge; `deploy.yml` runs the same on `main` and only then
+  publishes.
 
 ## Performance
 
 CPA over all 256 guesses at 5,000 traces runs in well under a second in the browser; the
 headline sliders recompute on `requestAnimationFrame`. Trace sets are generated once per
-noise level and cached.
+`(noise, seed)` pair and cached. Everything is deterministic: the same seed, trace count, and
+noise reproduce the exact figure, so README/appendix claims regenerate from documented
+settings.
+
+## References & Further Reading
+
+Full derivations, the leakage model, and the exact formulas are in
+[`docs/TECHNICAL.md`](docs/TECHNICAL.md). Primary sources:
+
+- **FIPS-197** — *Advanced Encryption Standard (AES)*, NIST, 2001 (rev. 2023).
+- **Kocher, Jaffe & Jun** — *Differential Power Analysis*, CRYPTO 1999.
+- **Brier, Clavier & Olivier** — *Correlation Power Analysis with a Leakage Model*, CHES 2004.
+- **Mangard, Oswald & Popp** — *Power Analysis Attacks*, Springer 2007.
+- **ChipWhisperer** (NewAE) — the open-source platform that runs this pipeline on real hardware.
+
+Contributing guidelines and the module architecture are in
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 

@@ -194,6 +194,14 @@ function spaSection(): HTMLElement {
 function cpaSection(): HTMLElement {
   const traceSlider = rangeInput("cpa-traces", 10, MAX_TRACES, 10, 400);
   const noiseSlider = rangeInput("cpa-noise", 5, 120, 5, 30); // /10 -> 0.5..12.0
+  const seedInput = el("input", {
+    type: "text",
+    id: "cpa-seed",
+    value: "1234",
+    inputmode: "numeric",
+    spellcheck: false,
+    "aria-label": "Trace-generation seed (for reproducible figures)",
+  }) as HTMLInputElement;
   const traceVal = el("span", { class: "val", id: "cpa-traces-val" });
   const noiseVal = el("span", { class: "val", id: "cpa-noise-val" });
   const runBtn = el("button", { id: "cpa-run", type: "button" }, ["Run the attack"]);
@@ -208,12 +216,17 @@ function cpaSection(): HTMLElement {
   const recovered = el("div", { class: "recovered", id: "cpa-recovered" });
   const table = el("div", { id: "cpa-table" });
 
-  let cache: { noise: number; ts: TraceSet } | null = null;
-  function tracesFor(noise: number): TraceSet {
-    if (!cache || cache.noise !== noise) {
-      cache = { noise, ts: generateTraces({ numTraces: MAX_TRACES, key: DEMO_KEY, noise, seed: 1234 }) };
+  let cache: { noise: number; seed: number; ts: TraceSet } | null = null;
+  function tracesFor(noise: number, seed: number): TraceSet {
+    if (!cache || cache.noise !== noise || cache.seed !== seed) {
+      cache = { noise, seed, ts: generateTraces({ numTraces: MAX_TRACES, key: DEMO_KEY, noise, seed }) };
     }
     return cache.ts;
+  }
+
+  function currentSeed(): number {
+    const s = parseInt(seedInput.value, 10);
+    return Number.isFinite(s) ? s : 1234;
   }
 
   function render(): void {
@@ -222,7 +235,7 @@ function cpaSection(): HTMLElement {
     traceVal.textContent = String(n);
     noiseVal.textContent = fmt(noise, 1);
 
-    const ts = tracesFor(noise);
+    const ts = tracesFor(noise, currentSeed());
     const res = cpaAttack(ts, n);
     const rank = res.ranking.indexOf(KEY_BYTE) + 1;
     const isRecovered = res.best === KEY_BYTE;
@@ -311,6 +324,7 @@ function cpaSection(): HTMLElement {
     noiseVal.textContent = fmt(Number(noiseSlider.value) / 10, 1);
     schedule();
   });
+  seedInput.addEventListener("change", render);
   runBtn.addEventListener("click", render);
   queueMicrotask(render);
 
@@ -333,6 +347,13 @@ function cpaSection(): HTMLElement {
         el("label", { for: "cpa-noise" }, ["Measurement noise σ: ", noiseVal]),
         noiseSlider,
       ]),
+      el("div", { class: "control-row" }, [
+        el("label", { for: "cpa-seed" }, ["Trace seed (reproducible figures)"]),
+        seedInput,
+      ]),
+    ]),
+    el("p", { class: "note" }, [
+      "Everything here is deterministic: the same seed, trace count, and noise reproduce the exact figure. Change the seed to draw a fresh independent trace set and confirm the result is not a fluke of one sample.",
     ]),
     el("div", { class: "btn-row" }, [runBtn]),
     el("figure", {}, [

@@ -1,0 +1,40 @@
+name: CI
+
+# Runs on every pull request and branch push so regressions are caught before
+# merge, not at deploy time. Deployment lives in deploy.yml and only runs on main;
+# this is the same gate (unit tests + typechecked build + WCAG A/AA in both themes)
+# without the Pages publish step.
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (Vitest, incl. spec KATs)
+        run: npm test
+      - name: Build (typecheck gates the build)
+        run: npm run build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E + accessibility gate (axe-core, WCAG A/AA, both themes)
+        run: npm run test:a11y
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
