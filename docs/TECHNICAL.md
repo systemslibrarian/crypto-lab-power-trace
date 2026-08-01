@@ -123,7 +123,7 @@ counted as a real countermeasure.
   second-order attacks combine two sample points (the one handling `m` and the one
   handling `s ⊕ m`) and defeat it. That higher-order attack is named, not built.
 - **Shuffling.** Randomizing the S-box operation order spreads the target leak
-  over several time slots, reducing per-sample correlation by ≈ `1/√d` for `d`
+  over several time slots, reducing per-sample correlation by ≈ `1/d` for `d`
   slots — so recovery needs ≈ `d²` more traces. Cost, not closure.
 - **Hiding / noise injection.** Raises `σ`; by §5 this raises the trace budget
   (≈ `σ²`) without closing the channel.
