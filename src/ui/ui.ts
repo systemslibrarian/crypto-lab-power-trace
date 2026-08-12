@@ -203,13 +203,20 @@ function spaSection(): HTMLElement {
 function cpaSection(): HTMLElement {
   const traceSlider = rangeInput("cpa-traces", 10, MAX_TRACES, 10, 400);
   const noiseSlider = rangeInput("cpa-noise", 5, 120, 5, 30); // /10 -> 0.5..12.0
+  // No `aria-label`. The visible `<label for="cpa-seed">` reads "Trace seed
+  // (reproducible figures)"; an `aria-label` overrides it, and this one was
+  // worded separately as "Trace-generation seed (for reproducible figures)" —
+  // so the accessible name did not contain the visible text, which fails SC
+  // 2.5.3 (Label in Name) and means a speech-input user saying what they can see
+  // does not reach the control. axe cannot catch this: its
+  // `label-content-name-mismatch` rule only covers roles that take their name
+  // from their own content, which a form field never does.
   const seedInput = el("input", {
     type: "text",
     id: "cpa-seed",
     value: "1234",
     inputmode: "numeric",
     spellcheck: false,
-    "aria-label": "Trace-generation seed (for reproducible figures)",
   }) as HTMLInputElement;
   const traceVal = el("span", { class: "val", id: "cpa-traces-val" });
   const noiseVal = el("span", { class: "val", id: "cpa-noise-val" });
@@ -743,11 +750,13 @@ function countermeasuresSection(): HTMLElement {
 /* ===================================================================== */
 
 function importSection(): HTMLElement {
+  // No `aria-label`, for the SC 2.5.3 reason spelled out on `#cpa-seed`: the
+  // visible label is "Trace CSV to attack" and the override read "CSV file of
+  // power traces to attack", which does not contain it.
   const fileInput = el("input", {
     type: "file",
     id: "import-file",
     accept: ".csv,text/csv",
-    "aria-label": "CSV file of power traces to attack",
   }) as HTMLInputElement;
   const exampleBtn = el("button", { id: "import-example", type: "button", class: "secondary" }, ["Download example CSV"]);
   const canvas = el("canvas", { id: "import-canvas", role: "img", "aria-label": "CPA on imported traces (load a CSV to run)" }) as HTMLCanvasElement;

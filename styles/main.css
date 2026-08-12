@@ -237,7 +237,16 @@ button {
   cursor: pointer;
   min-height: 44px;
   border-radius: 0.6rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  /* SC 1.4.11: a control's boundary has to be perceivable against the panel it
+     sits on, and for these buttons the border is the only thing that can do it
+     in BOTH themes. In dark the gold fill carries it on its own (6.01:1 on
+     --panel), but in light `--accent` on the near-white `--panel` is 2.85:1 and
+     the old `color-mix(--accent 45%, --border)` edge measured 2.51-2.61:1 — so
+     every primary button on the page dissolved into its panel. --control-border
+     is the palette's own component-boundary token, defined for exactly this and
+     previously applied to `input[type="text"]` alone: it measures 4.20:1 dark
+     and 4.31:1 light against the panel. */
+  border: 1px solid var(--control-border);
   padding: 0.6rem 1rem;
   font: inherit;
   font-weight: 700;
@@ -249,7 +258,12 @@ button {
 button.secondary {
   color: var(--text);
   background: var(--panel);
-  border-color: var(--border);
+  /* A secondary button's fill IS `--panel`, so it cannot delineate itself
+     against a `.panel` at all (1.00-1.02:1) and the border is the whole
+     boundary. `--border` is a SURFACE divider and measured 2.81-2.84:1 in dark
+     and 2.00-2.02:1 in light — under 3:1 in both. Same token, same reason, as
+     the base rule above. */
+  border-color: var(--control-border);
 }
 
 button:disabled {
