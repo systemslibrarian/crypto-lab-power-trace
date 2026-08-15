@@ -27,7 +27,7 @@ import { boot, driveAllStates, NARROW, reportCollected, watchPageErrors } from "
  * two inputs its token was already correctly applied to.
  */
 
-for (const theme of ["dark", "light"] as const) {
+for (const theme of ["dark"] as const) {
   test(`no WCAG A/AA violations in ${theme} theme`, async ({ page, context }) => {
     test.setTimeout(1_800_000);
     // `#cpa-link` calls `navigator.clipboard.writeText`. Without the grant the

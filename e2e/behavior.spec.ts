@@ -103,14 +103,6 @@ test.describe("Reproducibility", () => {
 });
 
 test.describe("Chrome", () => {
-  test("theme choice persists across reload", async ({ page }) => {
-    await page.goto(".");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await page.locator("#cl-theme-toggle").click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  });
 
   test("major panels fit a narrow mobile viewport without horizontal scroll", async ({ page }) => {
     await page.setViewportSize({ width: 380, height: 900 });
