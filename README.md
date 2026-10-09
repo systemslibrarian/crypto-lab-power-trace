@@ -1,11 +1,10 @@
 # Power Trace
 
-**Recover an AES-128 key byte from power consumption alone.** A timing attack measures
-how long the secret took; a power attack measures how hard the transistors worked. The
-cipher here is constant-time, its maths is correct, and it has no implementation bug — and
-the key still walks out through the power rail, because CMOS gates draw current in
-proportion to the bits they flip. This is the side channel that has nothing to do with your
-code.
+**Recover an AES-128 key byte from simulated power traces.** A timing attack measures
+how long the secret took; a power attack measures data-dependent electrical activity.
+The teaching model assumes constant-time execution while allowing power to depend on
+intermediate values: constant-time software can still leak through power or EM.
+This assumption is about the model, not a guarantee about the JavaScript AES below.
 
 > **Not production crypto — a teaching demo.** The AES-128 and the statistics are real; the
 > power traces are **simulated** from the cipher's real intermediate values. See
@@ -86,6 +85,13 @@ The honest scope, stated plainly:
 - **The traces are simulated.** They come from the cipher's real intermediates plus Gaussian
   noise — not from an oscilloscope. Real silicon leaks a noisier, more complex function; the
   exact noise characteristics do **not** transfer.
+- **The JavaScript AES is not a constant-time implementation.** It uses secret-dependent
+  S-box lookups in the round function and key schedule, and a secret-dependent branch
+  in the GF multiplication used by MixColumns. Passing AES known-answer tests checks
+  functional output, not timing behavior. No timing measurements or hardware leakage
+  assessment are provided; no practical timing exploit is asserted. See
+  [BearSSL’s constant-time explanation](https://www.bearssl.org/constanttime.html)
+  for why secret-dependent memory accesses and conditional jumps matter.
 - **What transfers:** the leakage model (power tracks Hamming weight), the statistics, and
   the trace-count economics. **What doesn't:** the physics of a particular device.
 - **The recovered value is precisely** byte 0 of the AES-128 key. In AES-128 the first round
@@ -160,6 +166,8 @@ settings.
 Full derivations, the leakage model, and the exact formulas are in
 [`docs/TECHNICAL.md`](docs/TECHNICAL.md). Primary sources:
 
+- **BearSSL** — [*Constant-Time Crypto*](https://www.bearssl.org/constanttime.html),
+  especially the execution model: secret-dependent memory accesses and conditional jumps.
 - **FIPS-197** — *Advanced Encryption Standard (AES)*, NIST, 2001 (rev. 2023).
 - **Kocher, Jaffe & Jun** — *Differential Power Analysis*, CRYPTO 1999.
 - **Brier, Clavier & Olivier** — *Correlation Power Analysis with a Leakage Model*, CHES 2004.

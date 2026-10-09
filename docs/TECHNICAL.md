@@ -50,6 +50,15 @@ Affine(x) = x ⊕ (x <<< 1) ⊕ (x <<< 2) ⊕ (x <<< 3) ⊕ (x <<< 4) ⊕ 0x63
 (`<<<` = rotate-left over 8 bits). Correctness is pinned by FIPS-197 known-answer
 tests (`src/aes/aes.test.ts`).
 
+The power model assumes constant-time execution to isolate data-dependent power
+leakage. The JavaScript AES is not a constant-time implementation: `subBytes` and
+`keyExpansion` index the S-box with secret-dependent values, and `gmul` branches
+on the high bit of state bytes during MixColumns. Functional known-answer tests
+do not establish timing safety. This lab provides no timing measurements or
+hardware leakage assessment and asserts no practical timing exploit. See
+[BearSSL, Constant-Time Crypto](https://www.bearssl.org/constanttime.html) for
+secret-dependent memory accesses and conditional jumps.
+
 CPA attacks the first-round SubBytes output `SBox(p ⊕ k)`, one key byte at a time.
 Recovering all 16 bytes recovers round-key 0, which **in AES-128 is the cipher
 key** — so this is encryption-key recovery, not a MAC/authentication key.

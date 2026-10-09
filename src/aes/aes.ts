@@ -1,10 +1,15 @@
 /**
- * Hand-rolled AES-128 — the real cipher whose intermediate values leak.
+ * Hand-rolled AES-128 — real intermediate values for the simulated power model.
  *
  * This is genuine AES-128 (FIPS-197). Nothing here is simulated: the S-box is
  * derived from first principles (multiplicative inverse in GF(2^8) followed by
  * the AES affine transform), the key schedule and round function are the real
  * ones, and the KATs in aes.test.ts are the FIPS-197 vectors.
+ *
+ * This JavaScript is not a constant-time implementation: rounds and key expansion
+ * use secret-dependent S-box lookups; gmul branches on a secret-dependent high
+ * bit when used by MixColumns. KATs check functional output, not timing safety.
+ * Constant-time execution is an assumption of the teaching model only.
  *
  * The teaching target is `sBoxOut(p, k) = SBOX[p ^ k]`: the output of the very
  * first-round SubBytes on a single byte. That intermediate is what a real chip
