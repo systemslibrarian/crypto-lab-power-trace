@@ -51,13 +51,13 @@ function hero(): HTMLElement {
       el("h1", { class: "cl-hero-title" }, ["Power Trace"]),
       el("p", { class: "cl-hero-sub" }, ["SPA · DPA · CPA · masking countermeasures"]),
       el("p", { class: "cl-hero-desc" }, [
-        "Correlate a Hamming-weight model against traces a real AES-128 leaked just by running, and watch one key-byte guess spike out of 256 as the trace count climbs — no bug, no timing, the key still walks out through the power rail.",
+        "Correlate a Hamming-weight model against simulated traces from real AES-128 intermediate values, and watch one key-byte guess spike out of 256 as the trace count climbs.",
       ]),
     ]),
     el("aside", { class: "cl-hero-why", "aria-label": "Why it matters" }, [
       el("span", { class: "cl-hero-why-label" }, ["WHY IT MATTERS"]),
       el("p", { class: "cl-hero-why-text" }, [
-        "Constant-time, spec-correct, bug-free code is not enough: smart cards, TPMs, and IoT chips leak their keys through power and EM whether or not the software is perfect. Side-channel resistance is a hardware-and-countermeasure problem, and pretending the maths being right settles it is how real keys get extracted.",
+        "Constant-time execution does not by itself prevent power or EM leakage. This teaching model assumes constant-time execution but data-dependent power; protecting real devices also requires appropriate side-channel countermeasures.",
       ]),
     ]),
   ]);
@@ -75,7 +75,7 @@ function intro(): HTMLElement {
       el("em", {}, ["timing"]),
       " attack measures how long the secret took. A ",
       el("em", {}, ["power"]),
-      " attack measures how hard the transistors worked. This lab is about the second one: the cipher below is constant-time, its maths is correct, and it has no implementation bug — and its key still leaks. Nothing here depends on your code being wrong.",
+      " attack measures data-dependent electrical activity. This lab models the second channel under an assumption of constant-time execution. The simulated leak depends on AES intermediate values, not on measured JavaScript timing.",
     ]),
     el("p", { class: "note caveat" }, [
       "The AES-128 and the Pearson correlation on this page are real. The power traces are ",
@@ -290,7 +290,7 @@ function cpaSection(): HTMLElement {
       el("span", { class: "ind-label" }, ["Cryptographic result"]),
       el("p", { class: "ind-value" }, ["AES-128 encryption: correct ✓"]),
       el("p", { class: "ind-sub" }, [
-        "Constant-time, spec-conformant (FIPS-197 KATs pass), no implementation bug. The cipher did nothing wrong.",
+        "FIPS-197 known-answer tests pass: functional output is checked. This JavaScript AES is not a constant-time implementation; functional correctness does not establish timing safety.",
       ]),
     );
 
@@ -301,7 +301,7 @@ function cpaSection(): HTMLElement {
       el("p", { class: "ind-value" }, [isRecovered ? "⚠ Key byte leaked" : "Not yet recovered"]),
       el("p", { class: "ind-sub" }, [
         isRecovered
-          ? `Byte 0 of the AES-128 key recovered as ${hex(KEY_BYTE)} from power alone, at ${n} traces. In AES-128 the first round key is the cipher key, so this is a real encryption-key byte — not a MAC or authentication key. The maths is intact; the leak is in the hardware model, not the algorithm.`
+          ? `Byte 0 of the AES-128 key recovered as ${hex(KEY_BYTE)} from simulated power traces, at ${n} traces. In AES-128 the first round key is the cipher key, so this is a real encryption-key byte — not a MAC or authentication key. The maths is intact; the leak is in the hardware model, not the algorithm.`
           : `Best guess ${hex(res.best)} ranks #${rank} of 256 at ${n} traces (correlation ${fmt(res.scores[res.best], 2)}). Drag traces up or noise down and watch the true byte separate.`,
       ]),
     );
@@ -848,6 +848,7 @@ function scopingSection(): HTMLElement {
         el("ul", {}, [
           el("li", {}, ["The traces are generated from the cipher's real intermediates plus Gaussian noise — not captured from silicon."]),
           el("li", {}, ["Real chips leak a noisier, more complex function; the exact noise characteristics of hardware do not transfer."]),
+          el("li", {}, ["Constant-time execution is a model assumption. The JavaScript AES uses secret-dependent S-box lookups and a branch in MixColumns multiplication; no timing measurements or hardware leakage assessment are provided."]),
           el("li", {}, ["This does not prove any specific device is vulnerable — it shows why the class of attack works."]),
           el("li", {}, ["Masking here is shown to kill first-order CPA only; it does not prove second-order security."]),
         ]),
@@ -855,6 +856,10 @@ function scopingSection(): HTMLElement {
     ]),
     el("p", { class: "note" }, [
       "Real captures come off an oscilloscope on real hardware (e.g. the open-source ChipWhisperer). What transfers from this bench to that one: the leakage model, the statistics, and the trace-count economics. What doesn't: the physics of a particular chip.",
+    ]),
+    el("p", { class: "note" }, [
+      el("a", { href: "https://www.bearssl.org/constanttime.html" }, ["BearSSL: Constant-Time Crypto"]),
+      " explains why secret-dependent memory accesses and conditional jumps matter. No practical timing exploit is asserted here.",
     ]),
     el("p", { class: "subhead" }, ["What this lab is not (and where to go instead)"]),
     el("ul", { class: "linklist" }, [

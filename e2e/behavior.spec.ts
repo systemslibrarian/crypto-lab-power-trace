@@ -19,6 +19,11 @@ test.describe("Correlation Power Analysis — the headline", () => {
     await expect(page.locator("#cpa-recovered")).toContainText("0x2B");
     // The cryptographic-result indicator stays factual even as the key leaks.
     await expect(page.locator("#cpa-cipher")).toContainText("AES-128 encryption: correct");
+    // Functional output and the model assumption must not imply timing safety.
+    await expect(page.locator("#cpa-cipher")).toContainText("not a constant-time implementation");
+    await expect(page.locator("#cpa-verdict")).toContainText("simulated power traces");
+    await expect(page.getByText("Constant-time execution is a model assumption.", { exact: false })).toBeVisible();
+    await expect(page.getByRole("link", { name: "BearSSL: Constant-Time Crypto" })).toHaveAttribute("href", "https://www.bearssl.org/constanttime.html");
   });
 
   test("more traces separate the spike (verdict flips as N climbs)", async ({ page }) => {
