@@ -2,6 +2,7 @@ import "../../styles/main.css";
 import { el, hex, fmt } from "./dom";
 import { bindChart, initCanvasTheming } from "./canvas";
 import { drawGuessPlot, drawSeparation, drawNoiseCurve, drawSpaTrace } from "./charts";
+import { cacheSection } from "./cache";
 import { hexToBytes } from "../aes/aes";
 import { generateTraces, type TraceSet } from "../leakage/traces";
 import { cpaAttack, cpaSeparation, cpaFromArrays, type CpaResult } from "../attack/cpa";
@@ -832,7 +833,7 @@ function scopingSection(): HTMLElement {
 
   return el("section", { class: "panel" }, [
     el("span", { class: "step" }, ["Honesty — what this proves and what it doesn't"]),
-    el("h2", {}, ["Real crypto, simulated traces"]),
+    el("h2", {}, ["Real crypto, simulated leakage"]),
     el("div", { class: "proof two" }, [
       el("div", { class: "proof-col real" }, [
         el("h3", {}, ["What is real here"]),
@@ -840,6 +841,7 @@ function scopingSection(): HTMLElement {
           el("li", {}, ["The AES-128 (hand-rolled, FIPS-197 KATs pass) and its S-box output — the leakage target."]),
           el("li", {}, ["The Pearson correlation, the DPA difference-of-means, and the cross-correlation resync."]),
           el("li", {}, ["The leakage model: power ∝ Hamming weight of the real intermediate value."]),
+          el("li", {}, ["The cache comparison enumerates key-byte candidates under its stated ideal line-address model; it does not analyze measured timing."]),
           el("li", {}, ["The trace-count economics — how the spike separates and how noise raises the cost."]),
         ]),
       ]),
@@ -849,6 +851,7 @@ function scopingSection(): HTMLElement {
           el("li", {}, ["The traces are generated from the cipher's real intermediates plus Gaussian noise — not captured from silicon."]),
           el("li", {}, ["Real chips leak a noisier, more complex function; the exact noise characteristics of hardware do not transfer."]),
           el("li", {}, ["Constant-time execution is a model assumption. The JavaScript AES uses secret-dependent S-box lookups and a branch in MixColumns multiplication; no timing measurements or hardware leakage assessment are provided."]),
+          el("li", {}, ["The cache exhibit assumes a hypothetical four-byte-entry T-table with 64-byte lines, unlike this JavaScript S-box. Its all-lines control is a teaching comparison, not a hardened AES implementation."]),
           el("li", {}, ["This does not prove any specific device is vulnerable — it shows why the class of attack works."]),
           el("li", {}, ["Masking here is shown to kill first-order CPA only; it does not prove second-order security."]),
         ]),
@@ -863,7 +866,7 @@ function scopingSection(): HTMLElement {
     ]),
     el("p", { class: "subhead" }, ["What this lab is not (and where to go instead)"]),
     el("ul", { class: "linklist" }, [
-      li("crypto-lab-timing-sidechannel", "https://systemslibrarian.github.io/crypto-lab-timing-sidechannel/", "timing attacks measure how long the secret took; this measures how much current it drew."),
+      li("crypto-lab-timing-sidechannel", "https://systemslibrarian.github.io/crypto-lab-timing-sidechannel/", "an early-exit comparison timing attack; the cache-line exhibit above is a different, simulated timing channel."),
       li("crypto-lab-timing-oracle", "https://systemslibrarian.github.io/crypto-lab-timing-oracle/", "a remote timing oracle — again duration, not power."),
       li("crypto-lab-lattice-fault", "https://systemslibrarian.github.io/crypto-lab-lattice-fault/", "fault injection and PQC/NTT leakage — a different physical channel, not covered here."),
       li("crypto-lab-rsa-educational", "https://systemslibrarian.github.io/crypto-lab-rsa-educational/", "the RSA arithmetic behind the SPA exhibit."),
@@ -892,6 +895,7 @@ export function initUi(): void {
     dpaCpaSection(),
     countermeasuresSection(),
     importSection(),
+    cacheSection(KEY_BYTE),
     scopingSection(),
   ]);
   app.append(main);

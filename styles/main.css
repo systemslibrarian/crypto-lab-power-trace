@@ -13,6 +13,7 @@
   --accent: #ca8a04; /* catalog accent — also tints the shared top bar */
   --accent-text: #f0b93e; /* accent as text on dark surfaces (AA) */
   --ink: #17130a; /* text on any bright fill */
+  --cache-active-ink: #17130a;
   --danger: #ff8f8f;
   --danger-line: #ff6b6b;
   --ok: #7fe0a0;
@@ -38,6 +39,7 @@
   --accent: #ca8a04;
   --accent-text: #7a5300; /* dark gold text on light (AA) */
   --ink: #1a1200;
+  --cache-active-ink: #fffaf0;
   --danger: #a01523;
   --danger-line: #b01a2e;
   --ok: #146a37;
@@ -519,6 +521,55 @@ canvas {
 
 .proof-col.notreal {
   border-left-color: var(--warn);
+}
+
+/* Idealized cache-line exhibit: labels and counts carry the information, not color. */
+.cache-compare {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0.8rem 0;
+}
+
+@media (min-width: 740px) {
+  .cache-compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.cache-card {
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--panel);
+  padding: 0.8rem;
+  min-width: 0;
+}
+
+.cache-card h3 { margin: 0 0 0.4rem; font-size: 1.04rem; }
+.cache-card .note { margin: 0.3rem 0 0.7rem; }
+.cache-result { font-weight: 600; margin-bottom: 0; }
+
+.cache-strip {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.cache-line {
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  padding: 0.35rem 0;
+  text-align: center;
+  font: 700 0.82rem ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  background: var(--chart-surface);
+  color: var(--muted);
+}
+
+.cache-line.observed {
+  border-color: var(--accent-text);
+  background: var(--accent-text);
+  color: var(--cache-active-ink);
+}
+
+@media (max-width: 380px) {
+  .cache-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* Non-goals / links */

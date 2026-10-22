@@ -25,6 +25,9 @@ attack is genuine:
   cross-correlation resynchronization**.
 - **Simulated traces** — generated from the cipher's real intermediates plus Gaussian
   noise, not captured from silicon.
+- **Separate simulated cache-line exhibit** — an ideal observer of a hypothetical
+  4-byte-entry AES T-table (64-byte lines) sees one of 16 lines for a first-round
+  lookup. This is an address model, not a measurement of this JavaScript AES.
 
 **Security model:** this is a bench, not a device. No secrets are protected here; the AES
 key is a fixed teaching value and everything runs in the browser with no backend. The point
@@ -58,7 +61,14 @@ is to show *why the class of attack works*, not to break any specific hardware.
 7. **Bring your own traces** — the same real CPA runs on any traces in a documented CSV
    format (plaintext byte + power samples per row). Download the example CSV or drop in your
    own capture (e.g. exported from ChipWhisperer). What transfers is stated plainly.
-8. **Honesty panel** — what is real, what is simulated, and what this does not prove.
+8. **Cache-line model (different channel)** — enter a known plaintext byte. An idealized
+   secret-dependent 4-byte-entry T-table lookup in a hypothetical 64-byte cache line
+   reveals one line, narrowing a single key byte to **16**, not one, possibilities.
+   Compare the same byte against an all-lines, secret-independent *model control*:
+   all **256** key bytes remain possible. Neither model runs actual T-table AES,
+   measures browser timing, nor demonstrates full-key recovery. A real constant-time
+   implementation requires more than this illustrative control.
+9. **Honesty panel** — what is real, what is simulated, and what this does not prove.
 
 ## When to Use It
 
@@ -92,6 +102,13 @@ The honest scope, stated plainly:
   assessment are provided; no practical timing exploit is asserted. See
   [BearSSL’s constant-time explanation](https://www.bearssl.org/constanttime.html)
   for why secret-dependent memory accesses and conditional jumps matter.
+- **The cache-line observation is idealized.** It models an old-style 32-bit-entry T-table
+  with 64-byte lines and perfect observation of a single lookup, not the one-byte S-box's
+  actual JavaScript memory layout. The all-lines access pattern is a conceptual control,
+  not production code or a claim that this toy makes AES constant-time. The original
+  [AES cache-attack research](https://eprint.iacr.org/2005/271) and
+  [NIST's AES implementation-security review (2022)](https://www.nist.gov/news-events/news/2022/12/announcement-proposal-update-fips-197-advanced-encryption-standard)
+  describe why such channels deserve attention in real implementations.
 - **What transfers:** the leakage model (power tracks Hamming weight), the statistics, and
   the trace-count economics. **What doesn't:** the physics of a particular device.
 - **The recovered value is precisely** byte 0 of the AES-128 key. In AES-128 the first round
@@ -129,7 +146,7 @@ Local a11y preview runs on port **4288** (`npm run preview -- --port 4288 --stri
 - [crypto-lab-rsa-educational](https://systemslibrarian.github.io/crypto-lab-rsa-educational/)
   — the RSA arithmetic behind the SPA exhibit.
 - [crypto-lab-timing-sidechannel](https://systemslibrarian.github.io/crypto-lab-timing-sidechannel/)
-  — timing attacks measure *duration*, this one measures *current*.
+  — an early-exit secret-comparison timing attack, distinct from the cache-line model here.
 - [crypto-lab-timing-oracle](https://systemslibrarian.github.io/crypto-lab-timing-oracle/)
   — a remote timing oracle.
 - [crypto-lab-lattice-fault](https://systemslibrarian.github.io/crypto-lab-lattice-fault/)
@@ -137,7 +154,8 @@ Local a11y preview runs on port **4288** (`npm run preview -- --port 4288 --stri
 
 ## Build & Verify
 
-- **45 unit tests** (Vitest), colocated as `src/**/*.test.ts`, all passing.
+- **Unit tests** (Vitest), colocated as `src/**/*.test.ts`, including the cache-line model,
+  all passing.
 - **Spec KATs:** 3 FIPS-197 AES-128 known-answer encryption vectors (`src/aes/aes.test.ts`),
   plus FIPS-197 S-box and key-expansion checks. The attack tests prove CPA recovers the key
   byte, DPA needs more traces than CPA, jitter collapses CPA and resync restores it, masking
@@ -169,6 +187,10 @@ Full derivations, the leakage model, and the exact formulas are in
 - **BearSSL** — [*Constant-Time Crypto*](https://www.bearssl.org/constanttime.html),
   especially the execution model: secret-dependent memory accesses and conditional jumps.
 - **FIPS-197** — *Advanced Encryption Standard (AES)*, NIST, 2001 (rev. 2023).
+- **Osvik, Shamir & Tromer** — [*Cache attacks and Countermeasures: the Case of AES*](https://eprint.iacr.org/2005/271),
+  ePrint 2005/271. Original demonstration of cache-state leakage from table-based AES.
+- **NIST** — [AES review announcement (19 December 2022)](https://www.nist.gov/news-events/news/2022/12/announcement-proposal-update-fips-197-advanced-encryption-standard),
+  implementation-security section, on the relevance of cache-timing attacks.
 - **Kocher, Jaffe & Jun** — *Differential Power Analysis*, CRYPTO 1999.
 - **Brier, Clavier & Olivier** — *Correlation Power Analysis with a Leakage Model*, CHES 2004.
 - **Mangard, Oswald & Popp** — *Power Analysis Attacks*, Springer 2007.

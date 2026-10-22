@@ -74,6 +74,36 @@ test.describe("Countermeasures", () => {
   });
 });
 
+test.describe("Simulated cache-line exhibit", () => {
+  test("contrasts an indexed line with uniform access without claiming key recovery", async ({ page }) => {
+    await page.goto(".");
+    await page.locator("#cache-plaintext").fill("00");
+    await page.locator("#cache-run").click();
+    await expect(page.locator("#cache-indexed-result"))
+      .toContainText("16 possible key bytes: 0x20–0x2F");
+    await expect(page.locator("#cache-uniform-result"))
+      .toContainText("all 256 possible key bytes");
+    await expect(page.locator("#cache-status"))
+      .toContainText("does not identify that byte uniquely");
+
+    await page.locator("#cache-plaintext").fill("FF");
+    await page.locator("#cache-run").click();
+    await expect(page.locator("#cache-indexed-result"))
+      .toContainText("line (13)");
+    await expect(page.locator("#cache-uniform-result"))
+      .toContainText("all 256 possible key bytes");
+    await expect(page.locator("#cache-model"))
+      .toContainText("not a browser timing measurement");
+    await expect(page.locator("#cache-model a[href='https://eprint.iacr.org/2005/271']"))
+      .toBeVisible();
+
+    await page.locator("#cache-plaintext").fill("GG");
+    await page.locator("#cache-run").click();
+    await expect(page.locator("#cache-status"))
+      .toContainText("Enter exactly one hexadecimal byte");
+  });
+});
+
 test.describe("Reproducibility", () => {
   test("a permalink restores the exact figure state", async ({ page }) => {
     await page.goto(".");
