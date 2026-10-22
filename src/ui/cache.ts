@@ -21,7 +21,7 @@ export function cacheSection(keyByte: number): HTMLElement {
   function paint(strip: HTMLElement, lines: readonly number[]): void {
     const visible = new Set(lines);
     strip.replaceChildren(...Array.from({ length: LINE_COUNT }, (_, line) =>
-      el("span", { class: `cache-line${visible.has(line) ? " observed" : ""}`, "aria-hidden": "true" }, [String(line)]),
+      el("span", { class: `cache-line${visible.has(line) ? " observed" : ""}` }, [String(line)]),
     ));
     strip.setAttribute("aria-label", `Table lines observed: ${lines.join(", ")}`);
   }
