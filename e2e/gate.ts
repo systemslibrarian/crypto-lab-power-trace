@@ -268,7 +268,7 @@ export async function boot(page: Page, theme: "dark" | "light"): Promise<void> {
 
   // `#app` ships EMPTY in index.html and every element below is built by
   // `initUi()`, so a navigation that resolves proves nothing at all.
-  await expect(page.locator("#app main > section.panel")).toHaveCount(9);
+  await expect(page.locator("#app main > section.panel")).toHaveCount(10);
   await assertSingleBanner(page);
 
   // ── The two exhibits that have already run ───────────────────────────────
@@ -276,6 +276,9 @@ export async function boot(page: Page, theme: "dark" | "light"): Promise<void> {
   await expect(page.locator("#spa-bits .bit-cell")).toHaveCount(9);
   await expect(page.locator("#cpa-verdict")).not.toBeEmpty();
   await expect(page.locator("#cpa-recovered .byte-box")).toHaveCount(1);
+  await expect(page.locator("#cache-plaintext")).toHaveValue("00");
+  await expect(page.locator("#cache-indexed-result")).toContainText("16 possible key bytes");
+  await expect(page.locator("#cache-uniform-result")).toContainText("all 256 possible key bytes");
 
   // ── The five that have not ───────────────────────────────────────────────
   for (const sel of ["#noise-status", "#align-status", "#dpacpa-status", "#import-status"]) {
