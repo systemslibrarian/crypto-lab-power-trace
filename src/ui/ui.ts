@@ -741,6 +741,12 @@ function countermeasuresSection(): HTMLElement {
     ]),
     el("div", { class: "btn-row" }, [runBtn]),
     el("figure", {}, [el("figcaption", {}, ["First-order CPA against the selected defense (4000 traces)"]), canvas]),
+    el("aside", { class: "note caveat", id: "shuffling-research-note", role: "note" }, [
+      el("h3", {}, ["Shuffling can leak its own order — 28 October 2026"]),
+      el("p", {}, ["Schupp et al., Unshuffling Fisher-Yates, ePrint 2026/2658 (received 27 October, approved 28 October 2026), is a preprint reporting a physical power side-channel attack. Leakage from Fisher-Yates permutation generation reveals the shuffled execution order; combining it with shuffled ML-DSA-44 NTT leakage recovers the secret polynomial s1, directly or with remaining coefficients enumerated. A single trace concerns an individual shuffle; the full polynomial-recovery experiment uses multiple measurements. Protect permutation generation as well as the shuffled operations. This is not a mathematical break of ML-DSA."]),
+      el("p", {}, ["This exhibit uses simulated AES traces, not physical ML-DSA measurements. It does not model permutation-generation leakage or reproduce the hardware attack."]),
+      el("a", { href: "https://eprint.iacr.org/2026/2658" }, ["Read the original research (preprint)"]),
+    ]),
     verdict,
     note,
   ]);

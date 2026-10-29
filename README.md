@@ -204,3 +204,9 @@ Contributing guidelines and the module architecture are in
 *Part of the [Crypto Lab](https://crypto-lab.systemslibrarian.dev/) suite.*
 
 *"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*
+
+## Shuffling research update — 28 October 2026
+
+Schupp et al., [Unshuffling Fisher-Yates, ePrint 2026/2658](https://eprint.iacr.org/2026/2658) (received 27 October, approved 28 October 2026), is a preprint reporting a physical power side-channel attack. Leakage from Fisher-Yates permutation generation reveals the shuffled execution order; combining it with shuffled ML-DSA-44 NTT leakage recovers the secret polynomial s1, directly or with remaining coefficients enumerated. A single trace concerns an individual shuffle; the full polynomial-recovery experiment uses multiple measurements. Protect permutation generation as well as the shuffled operations. This is not a mathematical break of ML-DSA.
+
+Exhibit 6 includes a visible source note. Its simulated AES traces do not model permutation-generation leakage or reproduce these physical ML-DSA measurements.
