@@ -11,6 +11,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Repository code runs read-only. The auto-merge job below declares the extra
+# scopes it needs; nothing else inherits them.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest

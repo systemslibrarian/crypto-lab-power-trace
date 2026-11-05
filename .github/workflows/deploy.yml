@@ -5,10 +5,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Only the no-checkout deploy job may publish. `build` runs repository code and
+# its own steps need no write scope: `upload-pages-artifact` requires none, and
+# `configure-pages` only reads the Pages configuration here -- its output is not
+# consumed by anything in this workflow.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -17,6 +19,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -40,6 +45,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
