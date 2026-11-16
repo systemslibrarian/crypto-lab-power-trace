@@ -723,16 +723,29 @@ export async function scan(page: Page, label: string): Promise<void> {
     EXTRA_RULES.includes(v.id) || v.tags.some((t) => TAGS.includes(t));
 
   // THE SHARED TOP BAR IS EXCLUDED FROM SC 2.5.3, AS A DECISION.
-  // `label-content-name-mismatch` fires on `.cl-brand` (visible "CRYPTO LAB
-  // systemslibrarian.dev", accessible name "Crypto Lab home") and on
-  // `#cl-theme-toggle` (visible "☀", name "Toggle color theme"). Both are in
-  // `.cl-topbar`, which every repo in this catalog carries as a byte-identical
-  // inline copy; the catalog's own instructions say a change every lab should
-  // get is a reviewed pass across the repos, never an overwrite driven from one
-  // of them. Reported upward instead. The exclusion is BY NODE, not by rule, so
-  // the same rule still fires on anything inside `#app` — and the lab's own
-  // 2.5.3 defects, which axe's rule does not reach at all because it skips form
-  // fields, are covered by `expectLabelInName` below.
+  // As the bar ships on this page today, nothing in it trips
+  // `label-content-name-mismatch`. The fleet-wide theme-toggle removal took
+  // `#cl-theme-toggle` (visible "☀", name "Toggle color theme") out of
+  // `.cl-topbar`, so the shared bar no longer supplies a toggle at all, and
+  // `.cl-brand` no longer carries an `aria-label` either — its accessible name
+  // now comes from its own visible text ("CRYPTO LAB systemslibrarian.dev").
+  // The two `.cl-btn` links that remain PASS the rule: each `aria-label`
+  // ("Crypto Lab menu", "View this project on GitHub") contains the visible
+  // label it sits on. Measured 2026-11-15 against this lab's built page — the
+  // rule returned zero violations and zero incomplete, with both links in
+  // `passes`.
+  //
+  // So this filter is dormant, and it is kept as a standing decision about the
+  // bar rather than a live suppression. `.cl-topbar` is a byte-identical inline
+  // copy in every repo in this catalog; the catalog's own instructions say a
+  // change every lab should get is a reviewed pass across the repos, never an
+  // overwrite driven from one of them. If a future revision of the shared bar
+  // reintroduces a name/content mismatch — a toggle among them, which is why
+  // the pattern below still names `cl-theme-toggle` — this lab reports it
+  // upward instead of failing on markup it must not edit. The exclusion is BY
+  // NODE, not by rule, so the same rule still fires on anything inside `#app`
+  // — and the lab's own 2.5.3 defects, which axe's rule does not reach at all
+  // because it skips form fields, are covered by `expectLabelInName` below.
   const outsideSharedBar = (v: { id: string; nodes: { target: unknown[] }[] }) =>
     v.id !== "label-content-name-mismatch" ||
     v.nodes.some((n) => !/cl-brand|cl-theme-toggle|cl-btn|cl-topbar/.test(n.target.join(" ")));
