@@ -1,0 +1,49 @@
+name: Gate
+
+# ONE definition of this lab's gate, called by the workflow a Dependabot bump
+# must clear and by the workflow that publishes. `needs:` cannot cross files,
+# so before this the deploy carried its own copy and nothing held the two
+# equal -- in this lab they had already drifted apart.
+#
+# A separate file rather than `workflow_call` on the CI workflow, because that
+# file's dependabot-auto-merge job holds contents: write, pull-requests: write
+# and actions: write, and a called workflow may not hold permissions above its
+# CALLER. Calling it from a deploy that holds contents: read fails the run at
+# startup before any job exists (measured: crypto-lab-key-exchange run
+# 44528331135, conclusion startup_failure).
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (Vitest, incl. spec KATs)
+        run: npm test
+      - name: Build (typecheck gates the build)
+        run: npm run build
+      - name: Bundle-size budget
+        run: npm run size
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E + accessibility gate (axe-core, WCAG A/AA, both themes)
+        run: npm run test:a11y
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
